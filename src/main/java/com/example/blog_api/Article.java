@@ -1,22 +1,37 @@
 package com.example.blog_api;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 
 @Entity
+@Table(name = "articles")
 public class Article {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @NotBlank(message = "Le titre ne peut pas être vide")
+    @Size(min = 3, max = 200, message = "Le titre doit contenir entre 3 et 200 caractères")
+    @Column(nullable = false, length = 200)
     private String title;
+    
+    @NotBlank(message = "Le contenu ne peut pas être vide")
+    @Size(min = 10, message = "Le contenu doit contenir au moins 10 caractères")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+    
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
+    
+    
+    // Hook JPA pour initialiser createdAt automatiquement
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
     public Article() {}
 
     public Article(String title, String content) {
@@ -44,7 +59,11 @@ public class Article {
         this.content = content;
     }
     
-    public LocalDateTime getCreatedAt() { return createdAt; } // <-- getter
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; } // <-- setter
+   public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 
 }
