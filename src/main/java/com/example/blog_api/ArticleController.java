@@ -1,6 +1,8 @@
 package com.example.blog_api;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -9,52 +11,55 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/articles")
+@RequestMapping("/api/articles")
+@CrossOrigin(origins = "http://localhost:4200")
 public class ArticleController {
 
     @Autowired
     private ArticleRepository articleRepository;
 
-    // GET /articles → liste tous les articles
+    // GET /api/articles → liste tous les articles
     @GetMapping
-    public List<Article> getAllArticles() {
-        return articleRepository.findAll();
+   public ResponseEntity<List<Article>> getAllArticles() {
+        List<Article> articles = articleRepository.findAll();
+        return ResponseEntity.ok(articles);
     }
 
-    // GET /articles/{id} → récupère un article par id
+    // GET /api/articles/{id} → récupère un article par id
     @GetMapping("/{id}")
     public ResponseEntity<Article> getArticleById(@PathVariable Long id) {
-        Optional<Article> article = articleRepository.findById(id);
-        return article.map(ResponseEntity::ok)
-                      .orElse(ResponseEntity.notFound().build());
+        return articleRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // POST /articles → crée un nouvel article
+    // POST /api/articles → crée un nouvel article (avec validation)
     @PostMapping
-    public Article createArticle(@RequestBody Article article) {
-        article.setCreatedAt(LocalDateTime.now());
-        return articleRepository.save(article);
+    public ResponseEntity<Article> createArticle(@Valid @RequestBody Article article) {
+        Article savedArticle = articleRepository.save(article);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedArticle);
     }
 
-    // PUT /articles/{id} → met à jour un article
+    // PUT /api/articles/{id} → met à jour un article
     @PutMapping("/{id}")
-    public ResponseEntity<Article> updateArticle(@PathVariable Long id, @RequestBody Article updatedArticle) {
-        return articleRepository.findById(id).map(article -> {
-            article.setTitle(updatedArticle.getTitle());
-            article.setContent(updatedArticle.getContent());
-            return ResponseEntity.ok(articleRepository.save(article));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Article> updateArticle(@PathVariable Long id, 
+                                                  @Valid @RequestBody Article updatedArticle) {
+        return articleRepository.findById(id)
+                .map(article -> {
+                    article.setTitle(updatedArticle.getTitle());
+                    article.setContent(updatedArticle.getContent());
+                    return ResponseEntity.ok(articleRepository.save(article));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // DELETE /articles/{id} → supprime un article
-    @DeleteMapping("/{id}")
+   @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteArticle(@PathVariable Long id) {
-        Optional<Article> article = articleRepository.findById(id);
-        if (article.isPresent()) {
-            articleRepository.delete(article.get());
-            return ResponseEntity.noContent().build(); // ResponseEntity<Void>
-        } else {
-            return ResponseEntity.notFound().build();
+        if (articleRepository.existsById(id)) {
+            articleRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
         }
+        return ResponseEntity.notFound().build();
     }
 }
